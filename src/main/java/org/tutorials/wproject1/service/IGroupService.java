@@ -5,29 +5,35 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.tutorials.wproject1.model.Attributes;
 import org.tutorials.wproject1.model.Group;
-import org.tutorials.wproject1.model.GroupAttr;
+
 import org.tutorials.wproject1.model.Member;
+import org.tutorials.wproject1.repository.GroupRepository;
+
 
 public interface IGroupService {
 
-    List<Group> findAll();
+    Set<Group> findAll();
 
-    Optional<Group>findGroup(Long gid);
+    Optional<Group>findGroupById(Long gid);
 
-    Group findGroupAttr(Long gid);
+    Optional<Set<Attributes>> findGroupAttributes(Long gid);
 
-    Optional<List<Group>> findMemberById(String memberId);
+    Optional<Set<Group>> findGroupsByMemberId(String memberId);
+    Optional<Set<Group>> findGroupsByMemberRating(Short rating);
 
-    Group createGroup(Map<String,String> groupAttr);
+    Group createGroup(Group group);
 
     void deleteGroup(Group group);
+    Optional<Group> deleteGroupAttributes(Long gid);
+    Optional<Group> deleteGroupMembers(Long gid);
+    void deleteAll();
 
-    //void deleteMember(Group group, String memberId);
-    List<Group> deleteMember(String memberId);
-
-    Optional<Group> updateGroupAttribute(Long gid, Map<String, String> attr);
+    Optional<Group> updateGroupAttributes(Long gid, Attributes attr);
 
     Optional<Group> updateGroupMember(Long gid, Member memberIn);
+
+
 
 }

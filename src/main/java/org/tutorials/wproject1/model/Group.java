@@ -1,101 +1,62 @@
 package org.tutorials.wproject1.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.data.jpa.repository.Modifying;
+
+import javax.persistence.*;
 import javax.validation.constraints.NotNull;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.ArrayList;
-import java.util.Optional;
-import java.util.HashMap;
-import java.util.Objects;
+import java.io.Serializable;
+import java.util.*;
 
-public class Group {
 
-    @NotNull
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Table(name="GROUPS")
+
+public class Group implements Serializable {
+
+    /**
+	 *
+	 */
+	private static final long serialVersionUID = 1L;
+
+	@Id
+    @Column(name="ID")
+    @GeneratedValue(strategy= GenerationType.AUTO)
     private Long gid;
-    private Map<String, String> attributes;
-    private Map<String, Member>members;
 
-    public Group() {
-        this.gid=1L;
-        this.attributes=new HashMap<>();
-        this.members=new HashMap<>();
+    //mapping to simple data type
+    /**
+    @ElementCollection
+    @OneToMany
+    @MapKeyColumn(name="key")
+    @Column(name="value")
+    @CollectionTable(name="group_attributes", joinColumns=@JoinColumn(name="group_id"))
+    private Map<String, String> attributes=new HashMap<>();
+    **/
 
-    }
-    public Group(Long gid) {
-        this.gid=gid;
-        this.attributes=new HashMap<>();
-        this.members=new HashMap<>();
-    }
+    @ManyToMany(fetch=FetchType.LAZY, cascade={CascadeType.ALL})
+    @JoinTable(
+            name="Group_Attributes",
+            joinColumns={
+                    @JoinColumn(name="group_id")
+            },
+            inverseJoinColumns = {@JoinColumn(name="key")}
+    )
+    private Set<Attributes> attributes=new HashSet<>();
 
-
-
-    public Group(Long gid, Map<String, String> attributes) {
-        this.gid=gid;
-        this.attributes=new HashMap<>();
-        this.attributes.putAll(attributes);
-        this.members=new HashMap<>();
-    }
-
-    public Group(Long gid, Map<String, String> attributes, Member member) {
-        this.gid=gid;
-        this.attributes=new HashMap<>();
-        this.attributes.putAll(attributes);
-        this.members=new HashMap<>();
-        this.members.put(member.getId(), member);
-    }
-
-
-    public Long getGid() {
-        return this.gid;
-    }
-
-    public void setGid(Long gid) {
-        this.gid=gid;
-    }
-
-
-    public Map<String, String> getAttributes() {
-        return this.attributes;
-    }
-
-    public void setAttributes(Map<String, String> attrs) {
-        this.attributes.putAll(attrs);
-    }
-
-
-    public Map<String, Member> getMembers() {
-        return this.members;
-    }
-
-    public void setMembers(Member member)  {
-        this.members.put(member.getId(), member);
-    }
-
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Group group = (Group) o;
-        return  Objects.equals(gid, group.gid) &&
-                Objects.equals(attributes, group.attributes) && attributes.size() == attributes.size() &&
-                Objects.equals(members, group.members) && members.size() == group.members.size();
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(gid, attributes, members);
-    }
-
-    @Override
-    public String toString() {
-        final StringBuilder sb = new StringBuilder("Group{");
-        sb.append("gid=").append(gid);
-        sb.append(", attributes='").append(attributes.toString());
-        sb.append(", members='").append(members.toString());
-        sb.append('}');
-        return sb.toString();
-    }
+    @ManyToMany(fetch=FetchType.LAZY, cascade={CascadeType.ALL})
+    @JoinTable(
+            name="Group_Member",
+            joinColumns={
+                   @JoinColumn(name="group_id")
+            },
+            inverseJoinColumns = {@JoinColumn(name="member_id")}
+    )
+    private Set<Member> members=new HashSet<>();
 
 }

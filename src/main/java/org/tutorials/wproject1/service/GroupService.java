@@ -1,102 +1,128 @@
 package org.tutorials.wproject1.service;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
+import org.tutorials.wproject1.model.Attributes;
 import org.tutorials.wproject1.model.Group;
-import org.tutorials.wproject1.model.GroupAttr;
 import org.tutorials.wproject1.model.Member;
 import org.tutorials.wproject1.repository.GroupRepository;
+import org.tutorials.wproject1.repository.AttributesRepository;
+import org.tutorials.wproject1.repository.MemberRepository;
 
 @Service
 public class GroupService implements IGroupService {
 
-    private AtomicLong sequence = new AtomicLong(0);
-    private static List<Group> groups=new ArrayList<>();
-
-    //@Autowired
-    //private GroupRepository repository;
+    @Autowired
+    private GroupRepository groupRepository;
+    
 
     @Override
-    public List<Group> findAll() {
-
-      return groups;
+    public Set<Group> findAll() {
+        return (Set<Group>) groupRepository.findAll();
     }
 
     @Override
-    public Optional<Group> findGroup(Long gid) {
-
-        return groups.stream().filter(g->Objects.equals(g.getGid(), gid)).findAny();
+    public Optional<Group> findGroupById(Long gid) {
+        return groupRepository.findById(gid);
     }
 
     @Override
-    public Group findGroupAttr(Long gid) {
+    public Optional<Set<Attributes>> findGroupAttributes(Long gid) {
 
-       return groups.stream().filter(g->Objects.equals(g.getGid(), gid)).findAny().orElse(null);
+        Optional<Group>group=groupRepository.findById(gid);
 
+        return group.map(g->g.getAttributes());
+    }
+
+    public Optional<Set<Group>> findGroupsByMemberId(String memberId) {
+
+        return groupRepository.findGroupsByMemberId(memberId);
     }
 
     @Override
-    public Optional<List<Group>> findMemberById(String memberId) {
-        List<Group>gs=groups.stream().filter(g->g.getMembers().containsKey(memberId)).collect(Collectors.toList());
-        return Optional.ofNullable(gs);
+    public Optional<Set<Group>> findGroupsByMemberRating(Short rating) {
+        
+        return groupRepository.findGroupsByMemberRating(rating);
     }
 
     @Override
-    public Group createGroup(Map<String, String> groupAttr) {
-        Long key=sequence.incrementAndGet();
-        Group group=new Group(key, groupAttr);
-        groups.add(group);
-        return group;
+    public Group createGroup(Group group) {
+   
+        return groupRepository.save(group);
     }
 
     @Override
-    public void deleteGroup(Group group)
-    {
-
-        groups.remove(group);
+    public void deleteGroup(Group group) {
+        groupRepository.delete(group);
     }
 
     @Override
-    public List<Group> deleteMember(String memberId) {
-        for (Group g1 : groups) {
-            //if (g1.getMembers().keySet().contains(memberId)) {
-                groups.remove(g1);
-                //g1.getMembers().keySet().remove(memberId);
-                //groups.add(g1);
-            //}
+    public Optional<Group> deleteGroupAttributes(Long gid)  {
+        Optional<Group>retrievedGroup=groupRepository.findById(gid);
+        if (retrievedGroup.isPresent()) {
+           retrievedGroup.get().setAttributes(new HashSet<>());
+           groupRepository.save(retrievedGroup.get());
         }
-        return groups;
-       //existingGroup.getMembers().remove(memberId);
+
+        return retrievedGroup;
+
     }
 
     @Override
-    public Optional<Group> updateGroupAttribute(Long gid, Map<String, String>attrs) {
+    public Optional<Group> deleteGroupMembers(Long gid) {
+       Optional<Group>retrievedGroup=groupRepository.findById(gid);
+        if (retrievedGroup.isPresent()) {
+           retrievedGroup.get().setMembers(new HashSet<>());
+           groupRepository.save(retrievedGroup.get());
+        }
 
-        Optional<Group>foundGroup=this.findGroup(gid);
+        return retrievedGroup;
+    }
 
-        foundGroup.ifPresent(g->{
-            g.setAttributes(attrs);
+    @Override
+    public void deleteAll() {
+        groupRepository.deleteAll();
+    }
 
-        });
-        return foundGroup;
+    
 
+    @Override
+    public Optional<Group> updateGroupAttributes(Long gid, Attributes attribute) {
+       Optional<Group>retrievedGroup=groupRepository.findById(gid);
+        if (retrievedGroup.isPresent()) {
+            Set<Attributes> retrievedAttributes=retrievedGroup.get().getAttributes();
+            Set<Attributes>updatedAttributes=retrievedAttributes.stream().map(k->{
+               if (k.getKey().equals(attribute.getKey())) {
+                   return attribute;
+               } else {
+                   return k;
+               }
+            }).collect(Collectors.toSet());
+            retrievedGroup.get().setAttributes(updatedAttributes);
+            groupRepository.save(retrievedGroup.get());
+        } 
+        return retrievedGroup;
     }
 
     @Override
     public Optional<Group> updateGroupMember(Long gid, Member memberIn) {
-        Optional<Group>foundGroup=this.findGroup(gid);
-
-        foundGroup.ifPresent(g->{
-            g.setMembers(memberIn);
-        });
-        return foundGroup;
-
+      Optional<Group>retrievedGroup=groupRepository.findById(gid);
+        if (retrievedGroup.isPresent()) {
+             Set<Member> retrievedMembers=retrievedGroup.get().getMembers();
+            Set<Member>updatedMembers=retrievedMembers.stream().map(e->{
+               if (e.getId()==memberIn.getId()) {
+                   return memberIn;
+               } else {
+                   return e;
+               }
+            }).collect(Collectors.toSet());
+            retrievedGroup.get().setMembers(updatedMembers);
+            groupRepository.save(retrievedGroup.get());
+        } 
+        return retrievedGroup;
     }
-
 }

@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 
 
 import org.tutorials.wproject1.model.Group;
-//import org.tutorials.wproject1.model.GroupAttr;
 import org.tutorials.wproject1.model.Member;
 import org.tutorials.wproject1.service.IGroupService;
 import org.tutorials.wproject1.exception.ResourceNotFoundException;
@@ -28,8 +27,7 @@ public class Wproject1Controller {
 
     private static final String notFoundError="Exception.notFound";
     private static final String notFoundError1="Exception.notFound1";
-    //private static final String unexpectedError="Exception.unexpected";
-
+    
     //@Autowired
     private IGroupService groupService;
 

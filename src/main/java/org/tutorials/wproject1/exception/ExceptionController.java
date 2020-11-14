@@ -11,19 +11,19 @@ public class ExceptionController {
     @ExceptionHandler(value=ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ResponseEntity<Object> exception(ResourceNotFoundException exception) {
-        return new ResponseEntity(exception.getLocalizedMessage(), HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(exception.getLocalizedMessage(), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(value=ResourceAlreadyExistException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<Object> exception(ResourceAlreadyExistException exception) {
-        return new ResponseEntity(exception.getLocalizedMessage(), HttpStatus.FOUND);
+        return new ResponseEntity<>(exception.getLocalizedMessage(), HttpStatus.FOUND);
     }
 
     @ExceptionHandler(value=UnexpectedException.class)
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
     public ResponseEntity<Object> exception(UnexpectedException exception) {
-        return new ResponseEntity(exception.getLocalizedMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(exception.getLocalizedMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
 }
