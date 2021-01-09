@@ -1,128 +1,87 @@
 package org.tutorials.wproject1.service;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
-import org.tutorials.wproject1.model.Attributes;
+import org.tutorials.wproject1.exception.ResourceNotFoundException;
 import org.tutorials.wproject1.model.Group;
 import org.tutorials.wproject1.model.Member;
 import org.tutorials.wproject1.repository.GroupRepository;
-import org.tutorials.wproject1.repository.AttributesRepository;
-import org.tutorials.wproject1.repository.MemberRepository;
 
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
 @Service
-public class GroupService implements IGroupService {
+public class GroupService  {
+    private static final String NOT_FOUND_ERROR ="Exception.notFound";
+    //@Autowired
+    private final MessageSource messageSource;
 
-    @Autowired
-    private GroupRepository groupRepository;
+    //@Autowired
+    private final GroupRepository groupRepository;
     
-
-    @Override
-    public Set<Group> findAll() {
-        return (Set<Group>) groupRepository.findAll();
+    public List<Group> findAll()  {
+        List<Group> groups= (List<Group>) groupRepository.findAll();
+        if (groups.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return groups;
     }
 
-    @Override
-    public Optional<Group> findGroupById(Long gid) {
-        return groupRepository.findById(gid);
+    public Group findGroupById(long gid) throws ResourceNotFoundException {
+        return groupRepository.findById(gid)
+          .orElseThrow(()->new ResourceNotFoundException(messageSource.getMessage(NOT_FOUND_ERROR, null, Locale.getDefault())));
     }
 
-    @Override
-    public Optional<Set<Attributes>> findGroupAttributes(Long gid) {
-
-        Optional<Group>group=groupRepository.findById(gid);
-
-        return group.map(g->g.getAttributes());
+    public List<Group> findGroupByName(String groupName) throws ResourceNotFoundException  {
+        return groupRepository.findGroupsByGroupName(groupName)
+          .orElseThrow(()->new ResourceNotFoundException(messageSource.getMessage(NOT_FOUND_ERROR, null, Locale.getDefault())));
     }
 
-    public Optional<Set<Group>> findGroupsByMemberId(String memberId) {
-
-        return groupRepository.findGroupsByMemberId(memberId);
+	public List<Group> findGroupsByMemberName(String memberName) throws ResourceNotFoundException {
+        return groupRepository.findGroupsByMemberName(memberName)
+           .orElseThrow(()->new ResourceNotFoundException(messageSource.getMessage(NOT_FOUND_ERROR, null, Locale.getDefault())));
     }
 
-    @Override
-    public Optional<Set<Group>> findGroupsByMemberRating(Short rating) {
-        
-        return groupRepository.findGroupsByMemberRating(rating);
+    public List<Group> findGroupsByMemberRating(short rating) throws ResourceNotFoundException {
+        return groupRepository.findGroupsByMemberRating(rating)
+           .orElseThrow(()->new ResourceNotFoundException(messageSource.getMessage(NOT_FOUND_ERROR, null, Locale.getDefault())));
     }
 
-    @Override
     public Group createGroup(Group group) {
-   
         return groupRepository.save(group);
     }
-
-    @Override
     public void deleteGroup(Group group) {
         groupRepository.delete(group);
     }
 
-    @Override
-    public Optional<Group> deleteGroupAttributes(Long gid)  {
-        Optional<Group>retrievedGroup=groupRepository.findById(gid);
-        if (retrievedGroup.isPresent()) {
-           retrievedGroup.get().setAttributes(new HashSet<>());
-           groupRepository.save(retrievedGroup.get());
-        }
-
-        return retrievedGroup;
-
-    }
-
-    @Override
-    public Optional<Group> deleteGroupMembers(Long gid) {
-       Optional<Group>retrievedGroup=groupRepository.findById(gid);
-        if (retrievedGroup.isPresent()) {
-           retrievedGroup.get().setMembers(new HashSet<>());
-           groupRepository.save(retrievedGroup.get());
-        }
-
+    public Group deleteGroupMembers(long gid, long memberId) throws ResourceNotFoundException {
+        Group retrievedGroup=groupRepository.findById(gid)
+           .orElseThrow(()->new ResourceNotFoundException(messageSource.getMessage(NOT_FOUND_ERROR, null, Locale.getDefault())));
+    
+        List<Member>retrievedMembers = retrievedGroup.getMembers();
+        retrievedMembers.removeIf(a -> a.getMemberId() == memberId);
+        retrievedGroup.setMembers(retrievedMembers);
+        groupRepository.save(retrievedGroup);
+    
         return retrievedGroup;
     }
 
-    @Override
     public void deleteAll() {
         groupRepository.deleteAll();
     }
 
+    public Group updateGroup(long gid, Group updates) throws ResourceNotFoundException {
+        Group retrievedGroup=groupRepository.findById(gid)
+           .orElseThrow(()->new ResourceNotFoundException(messageSource.getMessage(NOT_FOUND_ERROR, null, Locale.getDefault())));
     
-
-    @Override
-    public Optional<Group> updateGroupAttributes(Long gid, Attributes attribute) {
-       Optional<Group>retrievedGroup=groupRepository.findById(gid);
-        if (retrievedGroup.isPresent()) {
-            Set<Attributes> retrievedAttributes=retrievedGroup.get().getAttributes();
-            Set<Attributes>updatedAttributes=retrievedAttributes.stream().map(k->{
-               if (k.getKey().equals(attribute.getKey())) {
-                   return attribute;
-               } else {
-                   return k;
-               }
-            }).collect(Collectors.toSet());
-            retrievedGroup.get().setAttributes(updatedAttributes);
-            groupRepository.save(retrievedGroup.get());
-        } 
+        retrievedGroup.setMembers(updates.getMembers());
+        retrievedGroup.setGroupName(updates.getGroupName());
+        groupRepository.save(updates);
+    
         return retrievedGroup;
     }
-
-    @Override
-    public Optional<Group> updateGroupMember(Long gid, Member memberIn) {
-      Optional<Group>retrievedGroup=groupRepository.findById(gid);
-        if (retrievedGroup.isPresent()) {
-             Set<Member> retrievedMembers=retrievedGroup.get().getMembers();
-            Set<Member>updatedMembers=retrievedMembers.stream().map(e->{
-               if (e.getId()==memberIn.getId()) {
-                   return memberIn;
-               } else {
-                   return e;
-               }
-            }).collect(Collectors.toSet());
-            retrievedGroup.get().setMembers(updatedMembers);
-            groupRepository.save(retrievedGroup.get());
-        } 
-        return retrievedGroup;
-    }
+    
 }

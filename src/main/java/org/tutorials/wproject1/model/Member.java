@@ -1,39 +1,40 @@
 package org.tutorials.wproject1.model;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+//import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import java.io.Serializable;
-import java.util.HashSet;
-import java.util.Set;
-
-@Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name="Member")
-public class Member implements Serializable{
+@Builder
 
-    /**
-	 *
-	 */
-	private static final long serialVersionUID = 3L;
-
-	@NotNull
+@Entity
+@Table(name="GroupMember")
+public class Member {
+    @NotNull
     @Id
     @GeneratedValue(strategy= GenerationType.AUTO)
-    private Long id;
+    private Long memberId;
 
+    @NotBlank
+    @Size(min = 1, max = 20)
     private String name;
-
+    @Min(1)
+    @Max(6)
     private short rating;
 
-    @ManyToMany(mappedBy="members")
-    private Set<Group> groups;
-
-
+    @ManyToOne(fetch = FetchType.EAGER, cascade=CascadeType.ALL)
+    @JoinColumn(name = "ID")
+    //@JsonIgnore
+    private Group group;
 }

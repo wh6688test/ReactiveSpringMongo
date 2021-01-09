@@ -1,216 +1,315 @@
+//@MockBean : service layer unit tests
 package org.tutorials.wproject1.testing.unit;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.internal.verification.VerificationModeFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.junit.jupiter.api.BeforeEach;
 
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.tutorials.wproject1.testing.JsonUtil;
-
-
-
-import org.springframework.http.MediaType;
-import org.tutorials.wproject1.controller.Wproject1Controller;
-import org.tutorials.wproject1.model.Group;
-import org.tutorials.wproject1.model.Member;
-import org.tutorials.wproject1.service.GroupService;
-
-
-import java.util.*;
-
-import static org.hamcrest.Matchers.*;
-import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.BDDMockito.given;
-
-import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-//between controller and HTTP layer
-//@WebMvcTest(value = Wproject1Controller.class, excludeAutoConfiguration= SecurityAutoConfiguration)
-@AutoConfigureMockMvc
-@WebMvcTest(controllers = Wproject1Controller.class)
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.notNullValue;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyShort;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+
+import org.tutorials.wproject1.controller.GroupMapper;
+import org.tutorials.wproject1.model.Group;
+import org.tutorials.wproject1.model.GroupDTO;
+import org.tutorials.wproject1.model.MemberDTO;
+import org.tutorials.wproject1.service.GroupService;
+import org.tutorials.wproject1.testing.JsonUtil;
+
+@DataJpaTest
 public class Wproject1ControllerTest {
 
+    private final String group1Name = "simpleGroup1";
+    private final String group2Name = "testGroup2";
+    private final String group2Member1Name = "member1";
+    private final short group2Member1Rating = 2;
+    private final String group2Member2Name = "member2";
+    private final short group2Member2Rating = 3;
 
-	@Autowired
-	private MockMvc mvc;
+    private final String attr1 = "key1";
+    private final String attr2 = "value1";
 
-	@Autowired
-	ObjectMapper objectMapper;
+    private final String updatedGroup2Name = "testGroupU";  
+    private final short updatedRating = 5;
+    private final String updatedAttr1 = "updatedValue1";
 
+    @Autowired
+    private MockMvc mvc;
+    
     @MockBean
-	private GroupService service;
+    private GroupService groupService;
 
-    @BeforeEach
-    public void methodSetUp() throws Exception {
+    @MockBean GroupMapper groupMapper;
 
-	}
+    @BeforeEach 
+    public void setUp(){
 
-	@Test
-	void whenPostGroupThenGroupPosted200() throws Exception {
-		Map attr=new HashMap<String, String>();
-		attr.put("att", "value");
-		Group postedGroup=new Group(1L, attr);
-		given(service.createGroup(attr)).willReturn(postedGroup);
-		mvc.perform(post("/wrest/group").contentType(MediaType.APPLICATION_JSON).content(JsonUtil.toJsonByte(attr))).andExpect(status().isCreated()).andExpect(jsonPath("$.gid",greaterThan(0)));
-		verify(service, VerificationModeFactory.times(1)).createGroup(attr);
-		reset(service);
-	}
+    }
+    @Test
+    public void testControllerFindAll() throws Exception {
+        //Generating the Entity Object
+         final Long gid1=1L, gid2=2L, member1Id = 1L, member2Id = 2L;
 
-	@Test
-	void whenGetAllGroupsThenReturnJsonArray() throws Exception {
+         GroupDTO groupDTO1 = GroupDTO.builder().gid(gid1).groupName(group1Name).build();
+        
+         MemberDTO member1 = MemberDTO.builder().memberId(member1Id).name(group2Member1Name).rating(group2Member1Rating).build();
+         MemberDTO member2 = MemberDTO.builder().memberId(member2Id).name(group2Member2Name).rating(group2Member2Rating).build();
+ 
+         List<MemberDTO> members = new ArrayList<MemberDTO>();
+         members.add(member1);
+         members.add(member2);
+         
+         GroupDTO groupDTO2 = GroupDTO.builder().gid(gid2).groupName(group2Name).members(members).attr1(attr1).attr2(attr2).build();
+        
+         List<GroupDTO> groupDTOs = Arrays.asList(groupDTO1);
+         groupDTOs.add(groupDTO2);
 
-		Map attr1Map=new HashMap<String, String>();
-		attr1Map.put("attr1", "value1");
+        //Mock service level preconditions 
+        //doReturn(new ArrayList<>()).when(groupService).findAll();
+        //doReturn(new Group()).when(groupMapper).toGroupDTOs(any());
+        doReturn(groupMapper.toGroupsList(groupDTOs)).when(groupService).findAll();
+
+        //controller verifications against service mock
+        this.mvc.perform(get("/groups/")
+        .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$", hasSize(2)))
+        .andExpect(jsonPath("$[0].name", is(groupDTO1.getGroupName())))
+        .andExpect(jsonPath("$[1].name", is(groupDTO2.getGroupName())))
+        .andExpect(jsonPath("$[1].attributes", is(notNullValue())))
+        .andExpect(jsonPath("$[1].members", is(notNullValue())));
+    }
+
+    @Test
+    public void testGroupServiceFindById() throws Exception {
+         Long gid=1L;
+         //Generating the Entity Object
+         GroupDTO groupDTO = GroupDTO.builder().gid(gid).groupName(group2Name).build();
+        
+         //Service Mock preconditions : doReturn is more flexible than when ... thenReturn...
+         //doReturn(expectedGroup).when(groupRepository).findById(expectedGroup.getGid());
+         //when(groupService.findGroupById(gid)).thenReturn(any(Group.class));
+         //when(groupMapper.toGroupDTO(any(Group.class))).thenReturn(groupDTO);
+         when(groupService.findGroupById(gid)).thenReturn(groupMapper.toGroup(groupDTO));
+
+         //Controller verification against service mock
+         this.mvc.perform(get("/group/")
+         .param("gid", String.valueOf(gid))
+         .contentType(MediaType.APPLICATION_JSON))
+         .andExpect(status().isOk())
+         .andExpect(jsonPath("$.groupName", is(groupDTO.getGroupName())))
+         .andExpect(jsonPath("$.gid", is(notNullValue())));
+    }
+
+    @Test
+    public void testGroupServiceFindByGroupName() throws Exception {
+        //construct the objects
+        Long gid1=1L, gid2=2L;
+        
+        GroupDTO groupDTO1 = GroupDTO.builder().gid(gid1).groupName(group1Name).build();
+        GroupDTO groupDTO2 = GroupDTO.builder().gid(gid2).groupName(group1Name).build();
+        List<GroupDTO>groupDTOs = Arrays.asList(groupDTO1);
+        groupDTOs.add(groupDTO2);
+
+        //Service Mock precondition
+        //doReturn(new ArrayList<>()).when(groupService).findGroupByName(anyString());
+        //doReturn(groupDTOs).when(groupMapper).toGroupDTOs(any());
+        doReturn(groupMapper.toGroupsList(groupDTOs)).when(groupService).findGroupByName(anyString());
+
+         //controller verifications against service mock
+         this.mvc.perform(get("/group/"+group1Name+"/")
+         .contentType(MediaType.APPLICATION_JSON))
+         .andExpect(status().isOk())
+         .andExpect(jsonPath("$", hasSize(2)))
+         .andExpect(jsonPath("$[0].name", is(groupDTO1.getGroupName())))
+         .andExpect(jsonPath("$[1].name", is(groupDTO2.getGroupName())));
+     }
+       
+
+    @Test
+    public void testGroupServiceFindByGroupMemberName() throws Exception {
+        //construct the objects
+        Long gid2=2L;
+
+        MemberDTO memberDTO1 = MemberDTO.builder().name(group2Member1Name).rating(group2Member1Rating).build();
+        MemberDTO memberDTO2 = MemberDTO.builder().name(group2Member2Name).rating(group2Member2Rating).build();
+
+        List<MemberDTO> memberDTOs = new ArrayList<MemberDTO>();
+        memberDTOs.add(memberDTO1);
+        memberDTOs.add(memberDTO2);
+        GroupDTO groupDTO2 = GroupDTO.builder().gid(gid2).groupName(group2Name).members(memberDTOs).build();
+
+        List<GroupDTO> groupDTOs = Arrays.asList(groupDTO2);
+
+         //Mock precondition
+         //doReturn(new ArrayList<>()).when(groupService).findGroupsByMemberName(anyString());
+         //doReturn(groupDTOs).when(groupMapper).toGroupDTOs(any());
+         doReturn(groupMapper.toGroupsList(groupDTOs)).when(groupService).findGroupsByMemberName(anyString());
+
+          //controller verifications against service mock
+          this.mvc.perform(get("/group/member"+group2Member1Name+"/")
+          .contentType(MediaType.APPLICATION_JSON))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$", hasSize(1)))
+          .andExpect(jsonPath("$[0].members[0].name", is(group2Member1Name)));
+      }
+    
+    @Test
+    public void testGroupServiceFindByMemberRating() throws Exception {
+        
+     //construct the objects
+     Long gid2=2L;
+
+     MemberDTO memberDTO1 = MemberDTO.builder().name(group2Member1Name).rating(group2Member1Rating).build();
+     MemberDTO memberDTO2 = MemberDTO.builder().name(group2Member2Name).rating(group2Member1Rating).build();
+
+     List<MemberDTO> memberDTOs = new ArrayList<MemberDTO>();
+     memberDTOs.add(memberDTO1);
+     memberDTOs.add(memberDTO2);
+     GroupDTO groupDTO2 = GroupDTO.builder().gid(gid2).groupName(group2Name).members(memberDTOs).build();
+
+     List<GroupDTO> groupDTOs = Arrays.asList(groupDTO2);
+
+      //Service level Mock precondition
+      //doReturn(new ArrayList<>()).when(groupService).findGroupsByMemberRating(anyShort());
+      //doReturn(groupDTOs).when(groupMapper).toGroupDTOs(any());
+      doReturn(groupMapper.toGroupsList(groupDTOs)).when(groupService).findGroupsByMemberRating(anyShort());
+
+       //controller verifications against service mock
+       this.mvc.perform(get("/group/member"+group2Member1Rating+"/")
+       .contentType(MediaType.APPLICATION_JSON))
+       .andExpect(status().isOk())
+       .andExpect(jsonPath("$", hasSize(2)))
+       .andExpect(jsonPath("$[0].members[0].rating", is(group2Member1Rating)))
+       .andExpect(jsonPath("$[0].members[1].rating", is(group2Member1Rating)));
+    }
+
+    @Test
+    public void testGroupServiceCreate() throws Exception {
+        
+         //construct the objects
+         Long gid2=2L, member1Id=1L, member2Id=2L;
+
+         MemberDTO memberDTO1 = MemberDTO.builder().memberId(member1Id).name(group2Member1Name).rating(group2Member1Rating).build();
+         MemberDTO memberDTO2 = MemberDTO.builder().memberId(member2Id).name(group2Member2Name).rating(group2Member2Rating).build();
+ 
+         List<MemberDTO> membersDTOs = new ArrayList<MemberDTO>();
+         membersDTOs.add(memberDTO1);
+         membersDTOs.add(memberDTO2);
+         
+         GroupDTO groupDTO = GroupDTO.builder().gid(gid2).groupName(group2Name).attr1(attr1).attr2(attr2).members(membersDTOs).attr1(attr1).build();
+        
+        //Service Level Mock preconditions : doReturn is more flexible than when ... thenReturn...
+        //doReturn(new Group()).when(groupService).createGroup(any(Group.class));
+        //doReturn(groupDTO).when(groupMapper).toGroupDTO(any(Group.class));
+        doReturn(groupMapper.toGroup(groupDTO)).when(groupService).createGroup(any(Group.class));
+
+         //Controller verification against service mock
+         this.mvc.perform(post("/group/")
+         .param("gid", String.valueOf(gid2))
+         .content(JsonUtil.asJsonString(groupDTO))
+         .contentType(MediaType.APPLICATION_JSON)
+         .accept(MediaType.APPLICATION_JSON))
+         .andExpect(status().isCreated())
+         .andExpect(jsonPath("$.gid").exists())
+         .andExpect(jsonPath("$.attr1", is(attr1)))
+         .andExpect(jsonPath("$.members").exists())
+         .andExpect(jsonPath("$.members[0].memberId").exists())
+         .andExpect(jsonPath("$.members[0].memberName", is(group2Member1Name)));
+    }
 
 
-		Member member1= new Member("2", (short)4);
-		Group grp0=new Group(new Long(1));
-		Group grp1 = new Group(new Long(2), attr1Map);
-		Group grp2 = new Group(new Long(3), attr1Map, member1);
+    @Test
+    public void testGroupServiceUpdate() throws Exception {
+        
+         //construct the objects
+         Long gid2=2L, member1Id=1L, member2Id=2L;
 
-		List<Group> allGroups=new ArrayList();
-		allGroups.add(grp0);
-		allGroups.add(grp1);
-		allGroups.add(grp2);
+         MemberDTO memberDTO1 = MemberDTO.builder().memberId(member1Id).name(group2Member1Name).rating(group2Member1Rating).build();
+         MemberDTO memberDTO2 = MemberDTO.builder().memberId(member2Id).name(group2Member2Name).rating(group2Member2Rating).build();
+ 
+         List<MemberDTO> membersDTOs = new ArrayList<MemberDTO>();
+         membersDTOs.add(memberDTO1);
+         membersDTOs.add(memberDTO2);
+         
+         
+         GroupDTO groupDTO = GroupDTO.builder().gid(gid2).groupName(group2Name).members(membersDTOs).attr1(attr1).attr2(attr2).build();
+         doReturn(groupMapper.toGroup(groupDTO)).when(groupService).findGroupById(anyLong());
+         MemberDTO updatedMemberDTO = MemberDTO.builder().memberId(memberDTO1.getMemberId()).name(group2Member1Name).rating(updatedRating).build();
+         membersDTOs.remove(memberDTO1);
+         membersDTOs.add(updatedMemberDTO);
+         GroupDTO updatedGroupDTO = GroupDTO.builder().gid(gid2).groupName(updatedGroup2Name).members(membersDTOs).attr1(updatedAttr1).attr2(attr2).build();
+        
+         
+        //service level mock precondition
+        //doReturn(new Group()).when(groupService).updateGroup(anyLong(), any(Group.class));
+        //doReturn(new GroupDTO()).when(groupMapper).toGroupDTO(any(Group.class));
+        doReturn(groupMapper.toGroup(updatedGroupDTO)).when(groupService).updateGroup(anyLong(), any(Group.class));
 
-		given(service.findAll()).willReturn(allGroups);
-		//todo : add value verification
-		mvc.perform(get("/wrest/groups").contentType(MediaType.APPLICATION_JSON)).andExpect(status().isOk()).andExpect(jsonPath("$",hasSize(3)))
-				.andExpect(jsonPath("$[0].attributes").isEmpty()).andExpect(jsonPath("$[1].attributes").isNotEmpty())
-				.andExpect(jsonPath("$[2].members").isNotEmpty())
-		        .andExpect(jsonPath("$[2].members", hasKey("2")))
-				.andExpect(jsonPath("$[2].members.2.rating", is(4)));
-
-
-
-		verify(service, VerificationModeFactory.times(1)).findAll();
-		reset(service);
-	}
-
-	@Test
-	void whenGetSpecificGroupThenReturnTheGroup200() throws Exception {
-
-		Map attr1Map=new HashMap<String, String>();
-		attr1Map.put("attr1", "value1");
-		Member member1= new Member("1", (short)5);
-		Group grp0=new Group(1L);
-		Group grp1 = new Group(2L, attr1Map);
-		Group grp2 = new Group(3L, attr1Map, member1);
-
-		List<Group> allGroups=new ArrayList();
-		allGroups.add(grp0);
-		allGroups.add(grp1);
-		allGroups.add(grp2);
-
-		given(service.findGroup(3L)).willReturn(Optional.of(grp2));
-		mvc.perform(get("/wrest/group").param("gid", "3").contentType(MediaType.APPLICATION_JSON)).andExpect(status().isOk())
-				.andExpect(jsonPath("$.members", hasKey("1"))).andExpect(jsonPath("$.members.1", hasValue(5))).andExpect(jsonPath("$.attributes", hasKey("attr1"))).andExpect(jsonPath("$.gid", is(3)));
-		verify(service, VerificationModeFactory.times(1)).findGroup(3L);
-		reset(service);
-	}
+         //Controller verification against service mock
+         this.mvc.perform(put("/group/1")
+         .param("gid", String.valueOf(gid2))
+         .content(JsonUtil.asJsonString(updatedGroupDTO))
+         .contentType(MediaType.APPLICATION_JSON)
+         .accept(MediaType.APPLICATION_JSON))
+         .andExpect(status().isAccepted())
+         .andExpect(jsonPath("$.gid").exists())
+         .andExpect(jsonPath("$.groupName", is(updatedGroup2Name)))
+         .andExpect(jsonPath("$.attr1", is(updatedAttr1)))
+         .andExpect(jsonPath("$.attr2", is(attr2)))
+         .andExpect(jsonPath("$.members").exists())
+         .andExpect(jsonPath("$.members[0].memberId").exists())
+         .andExpect(jsonPath("$.members[0].rating").exists())
+         .andExpect(jsonPath("$.members[0].memberName", is(group2Member1Name)));
+    }
 
 
+    @Test
+    public void testGroupServiceDelete() throws Exception {
+        
+        //construct the objects
+        
+        Long gid2=2L, member1Id=1L, member2Id=2L;
+        
+        MemberDTO member1DTO = MemberDTO.builder().memberId(member1Id).name(group2Member1Name).rating(group2Member1Rating).build();
+        MemberDTO member2DTO = MemberDTO.builder().memberId(member2Id).name(group2Member2Name).rating(group2Member2Rating).build();
 
-	@Test
-	void whenUpdateGroupMemberThenReturnUpdatedGroup200() throws Exception {
+        List<MemberDTO> membersDTOs = new ArrayList<MemberDTO>();
+        membersDTOs.add(member1DTO);
+        membersDTOs.add(member2DTO);
+        
+        GroupDTO group2DTO = GroupDTO.builder().gid(gid2).groupName(group2Name).members(membersDTOs).attr1(attr1).build();
 
-		Map attr1Map=new HashMap<String, String>();
-		attr1Map.put("attr1", "value1");
-		Member member1= new Member("1", (short)2);
-		Member member2= new Member("2", (short)3);
+        doReturn(groupMapper.toGroup(group2DTO)).when(groupService).findGroupById(group2DTO.getGid());
 
-		Group grp1 = new Group(new Long(2), attr1Map, member1);
-		Group grp2 = new Group(new Long(2), attr1Map, member2);
+        doNothing().when(groupService).deleteGroup(groupMapper.toGroup(group2DTO));
 
-		Set<Group> allGroups=new HashSet();
-		allGroups.add(grp1);
-
-		given(service.updateGroupMember(2L, member2)).willReturn(Optional.of(grp2));
-
-		mvc.perform(put("/wrest/group/{gid}/member/rating", 2L).contentType(MediaType.APPLICATION_JSON).content(JsonUtil.toJsonByte(member2))).andExpect(status().isOk())
-				 .andExpect(jsonPath("$.gid", is(2)))
-				 .andExpect(jsonPath("$.members", hasKey("2"))).andExpect(jsonPath("$.members.2.rating", is(3)))
-				 .andExpect(jsonPath("$.attributes", hasKey("attr1"))).andExpect(jsonPath("$.attributes", hasValue("value1")));
-
-		verify(service, VerificationModeFactory.times(1)).updateGroupMember(2L, member2);
-		reset(service);
-	}
-
-
-	@Test
-	void whenGetSpecificMemberThenReturnContainingGroups() throws Exception {
-
-		Map attr1Map=new HashMap<String, String>();
-		attr1Map.put("attr1", "value1");
-
-
-		Member member1= new Member("1", (short)5);
-		Group grp0=new Group(new Long(1));
-		Group grp1 = new Group(new Long(2), attr1Map);
-		Group grp2 = new Group(new Long(3), attr1Map, member1);
-
-		List<Group> allGroups=new ArrayList();
-		allGroups.add(grp0);
-		allGroups.add(grp1);
-		allGroups.add(grp2);
-
-		List<Group>returnedGroups=new ArrayList();
-		returnedGroups.add(grp2);
-
-		given(service.findMemberById("1")).willReturn(Optional.of(returnedGroups));
-		//200OK
-		mvc.perform(get("/wrest/group/member/{memberId}", "1").contentType(MediaType.APPLICATION_JSON)).andExpect(status().isOk())
-			.andExpect(jsonPath("$[0].members", hasKey("1"))).andExpect(jsonPath("$[0].members.1.rating", is(5)));
-
-		//403 Not Found
-		mvc.perform(get("/wrest/group/member/{memberId}", "member2").contentType(MediaType.APPLICATION_JSON))
-				.andDo(print()).andExpect(status().isNotFound());
-
-
-		verify(service, VerificationModeFactory.times(1)).findMemberById("1");
-		verify(service, VerificationModeFactory.times(1)).findMemberById("member2");
-		reset(service);
-
-	}
-
-
-	@Test
-	void whenDeleteGroupReturn204() throws Exception {
-
-		Map attr1Map=new HashMap<String, String>();
-		attr1Map.put("attr1", "value1");
-
-
-		Group grp1=new Group(1L, attr1Map);
-
-		List<Group> allGroups=new ArrayList();
-		allGroups.add(grp1);
-
-		when(service.createGroup(attr1Map)).thenCallRealMethod();
-		when(service.findGroup(1L)).thenReturn(Optional.of(grp1));
-	    doAnswer(invocation -> {
-	    	Object arg0 = invocation.getArgument(0);
-	    	assertEquals(grp1, arg0);
-	    	assertEquals(grp1.getGid(), 1L);
-	    	return null;
-
-		}).when(service).deleteGroup(grp1);
-		mvc.perform(delete("/wrest/group/{gid}", "1").contentType(MediaType.APPLICATION_JSON)).andExpect(status().isNoContent());
-		verify(service, VerificationModeFactory.times(1)).deleteGroup(grp1);
-		reset(service);
-	}
+         //Controller verification against service mock
+         this.mvc.perform(delete("/group/1"))
+         .andExpect(status().isAccepted());
+    }
 
 }

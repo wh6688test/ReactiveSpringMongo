@@ -1,62 +1,50 @@
 package org.tutorials.wproject1.model;
-
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.jpa.repository.Modifying;
-
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
-import java.io.Serializable;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import java.util.*;
 
-
-@Entity
+//lombok annotation for convenience and builder
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
+
+@Entity
 @Table(name="GROUPS")
-
-public class Group implements Serializable {
-
-    /**
-	 *
-	 */
-	private static final long serialVersionUID = 1L;
-
-	@Id
+@NamedEntityGraph(
+  name = "group-entity-graph",
+  attributeNodes = {
+    @NamedAttributeNode("groupName"),
+    @NamedAttributeNode("members"),
+  }
+)
+public class Group   {
+    @NotNull
+    @Id
     @Column(name="ID")
-    @GeneratedValue(strategy= GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long gid;
 
-    //mapping to simple data type
-    /**
-    @ElementCollection
-    @OneToMany
-    @MapKeyColumn(name="key")
-    @Column(name="value")
-    @CollectionTable(name="group_attributes", joinColumns=@JoinColumn(name="group_id"))
-    private Map<String, String> attributes=new HashMap<>();
-    **/
+    @NotNull
+    private String groupName;
 
-    @ManyToMany(fetch=FetchType.LAZY, cascade={CascadeType.ALL})
-    @JoinTable(
-            name="Group_Attributes",
-            joinColumns={
-                    @JoinColumn(name="group_id")
-            },
-            inverseJoinColumns = {@JoinColumn(name="key")}
-    )
-    private Set<Attributes> attributes=new HashSet<>();
+    private String attr1;
+    private String attr2;
 
-    @ManyToMany(fetch=FetchType.LAZY, cascade={CascadeType.ALL})
-    @JoinTable(
-            name="Group_Member",
-            joinColumns={
-                   @JoinColumn(name="group_id")
-            },
-            inverseJoinColumns = {@JoinColumn(name="member_id")}
-    )
-    private Set<Member> members=new HashSet<>();
+    @OneToMany(mappedBy = "group", fetch=FetchType.EAGER, cascade={CascadeType.PERSIST, CascadeType.MERGE})
+    private List<Member> members;
+
+    @CreationTimestamp
+    private Date createdAt;
+    @UpdateTimestamp
+    private Date updatedAt;
 
 }
