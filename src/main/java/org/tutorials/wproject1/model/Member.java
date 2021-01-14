@@ -11,7 +11,6 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-//import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Data
 @NoArgsConstructor
@@ -19,7 +18,7 @@ import javax.validation.constraints.Size;
 @Builder
 
 @Entity
-@Table(name="GroupMember")
+@Table(name="Member")
 public class Member {
     @NotNull
     @Id
@@ -33,8 +32,4 @@ public class Member {
     @Max(6)
     private short rating;
 
-    @ManyToOne(fetch = FetchType.EAGER, cascade=CascadeType.ALL)
-    @JoinColumn(name = "ID")
-    //@JsonIgnore
-    private Group group;
 }

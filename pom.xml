@@ -24,7 +24,7 @@
 		<org.projectlombok.version>1.18.16</org.projectlombok.version>
 		<org.apache.maven.plugins.version>3.3.4</org.apache.maven.plugins.version>
         <org.springdoc.openapi.version>1.5.2</org.springdoc.openapi.version>
-
+         <org.springfox.swaggerui.version>3.0.0</org.springfox.swaggerui.version>
 		 <org.apache.maven.plugins.version>3.8.1</org.apache.maven.plugins.version>
 
 		<start-class>org.tutorials.wproject1.Wproject1Application</start-class>
@@ -42,14 +42,15 @@
 					<artifactId>spring-boot-starter-web</artifactId>
 				</dependency>
 		
-                   <dependency>
-			         <groupId>org.springframework.boot</groupId>
-			         <artifactId>spring-boot-starter-data-rest</artifactId>
-		          </dependency>
 
                  <dependency>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-starter-data-jpa</artifactId>
+                 </dependency>
+
+                <dependency>
+                  <groupId>org.springframework.boot</groupId>
+             <artifactId>spring-boot-starter-data-rest</artifactId>
                  </dependency>
 
 				 <dependency>
@@ -57,17 +58,20 @@
 			     <artifactId>spring-boot-starter-actuator</artifactId>
 		       </dependency>
 
+
+
 				<dependency>
 					<groupId>org.springdoc</groupId>
 					<artifactId>springdoc-openapi-ui</artifactId>
 					<version>${org.springdoc.openapi.version}</version>
-				</dependency>          
-				<dependency>
-  				 	 <groupId>org.springdoc</groupId>
-   					 <artifactId>springdoc-openapi-data-rest</artifactId>
-   					<version>${org.springdoc.openapi.version}</version>
-				</dependency>
-        
+				</dependency>   
+
+	            <dependency>
+                     <groupId>io.springfox</groupId>
+                     <artifactId>springfox-swagger-ui</artifactId>
+                     <version>${org.springfox.swaggerui.version}</version>
+                </dependency>
+
 				<dependency>
 					<groupId>org.springframework.boot</groupId>
 					<artifactId>spring-boot-devtools</artifactId>

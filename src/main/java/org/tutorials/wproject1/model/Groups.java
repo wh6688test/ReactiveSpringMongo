@@ -2,34 +2,32 @@ package org.tutorials.wproject1.model;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
+
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
-
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.util.*;
 
 //lombok annotation for convenience and builder
 @Data
-@NoArgsConstructor
+@RequiredArgsConstructor
 @AllArgsConstructor
 @Builder
 
 @Entity
 @Table(name="GROUPS")
+
 @NamedEntityGraph(
-  name = "group-entity-graph",
+  name = "Groups.members",
   attributeNodes = {
-    @NamedAttributeNode("groupName"),
     @NamedAttributeNode("members"),
   }
 )
-public class Group   {
+public class Groups   {
     @NotNull
     @Id
-    @Column(name="ID")
+    @Column(name="GROUP_ID")
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long gid;
 
@@ -39,12 +37,10 @@ public class Group   {
     private String attr1;
     private String attr2;
 
-    @OneToMany(mappedBy = "group", fetch=FetchType.EAGER, cascade={CascadeType.PERSIST, CascadeType.MERGE})
-    private List<Member> members;
-
-    @CreationTimestamp
-    private Date createdAt;
-    @UpdateTimestamp
-    private Date updatedAt;
+    //@JsonIgnore
+    //@OneToMany(mappedBy = "groups", cascade = CascadeType.ALL, fetch=FetchType.EAGER)
+    @OneToMany(fetch=FetchType.EAGER, cascade = CascadeType.ALL)
+    @Builder.Default
+    private List<Member> members = new ArrayList<>();
 
 }

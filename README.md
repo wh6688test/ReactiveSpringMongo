@@ -1,3 +1,25 @@
+api doc UI link : 
+
+start springboot app : 
+ mvn spring-boot:run
+
+run all tests :  
+ mvn test
+
+run test suite  : 
+  mvn -Dtest=<suite name>  test
+  example : 
+  mvn -Dtest=Wproject1IntegrationTest  test
+
+run testcase : 
+    
+  mvn -Dtest=<suite name>#<testcase name>  test
+
+api doc link :  
+   http://localhost:8081/swagger-ui-custom.html
+
+Useful Info and Links : 
+
 OpenJDK download sites : 
 
   https://adoptopenjdk.net/releases.html
@@ -7,6 +29,7 @@ LATER :
 (Configuration,  Transactional, Security)
 
    https://www.baeldung.com/spring-jpa-test-in-memory-database
+   https://auth0.com/blog/integrating-spring-data-jpa-postgresql-liquibase/
 
 Reactive web : 
 
@@ -57,7 +80,7 @@ spring tests  :
  
   https://asbnotebook.com/2020/05/28/spring-boot-rest-controller-junit-test-example/
 
-
+  https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#jpa.entity-persistence
 
   https://developer.okta.com/blog/2019/03/28/test-java-spring-boot-junit5
 
@@ -71,6 +94,11 @@ spring tests  :
   https://www.baeldung.com/spring-rest-openapi-documentation
 
   https://dzone.com/articles/doing-more-with-springdoc-openapi
+
+  Request Validation : 
+    https://mkyong.com/spring-boot/spring-rest-validation-example/
+    https://www.baeldung.com/global-error-handler-in-a-spring-rest-api
+    https://hellokoding.com/spring-boot-rest-api-validation-tutorial-with-example/
 
   JPA repository : 
 
@@ -95,9 +123,9 @@ spring tests  :
 
 
 NOTE : 1. SpringData Part is working in progress : same spring project but data are from db (using embedded db for now)
-       2. Add spring data mock tests
+
           (Spring data Mock test references links :
-     
+        https://github.com/spring-guides/gs-testing-web/blob/master/complete/src/test/java/com/example/testingweb/WebMockTest.java 
          https://reflectoring.io/spring-boot-data-jpa-test/
          https://www.baeldung.com/spring-jpa-test-in-memory-database
          https://www.baeldung.com/spring-boot-testing 
@@ -176,6 +204,11 @@ Reference Links :
   https://stackoverflow.com/questions/33236664/difference-between-query-native-query-named-query-and-typed-query
   
   http://zetcode.com/springboot/datajpaquery/
+
+Locale/MessageSource : 
+
+  https://github.com/eugenp/tutorials/blob/master/spring-boot-modules/spring-boot-mvc/src/main/java/com/baeldung/internationalization/config/MvcConfig.java
+  https://www.baeldung.com/spring-custom-validation-message-source
 
 Misc : 
 
