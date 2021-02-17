@@ -1,120 +1,84 @@
 package org.tutorials.wproject1.service;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.transaction.Transactional;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
-
 import org.tutorials.wproject1.exception.BusinessException;
 import org.tutorials.wproject1.exception.InvalidInputException;
-import org.tutorials.wproject1.model.Groups;
-import org.tutorials.wproject1.model.Member;
-import org.tutorials.wproject1.repository.GroupsRepository;
-import org.tutorials.wproject1.repository.MemberRepository;
+import org.tutorials.wproject1.exception.ResourceNotFoundException;
+import org.tutorials.wproject1.model.Group;
+import org.tutorials.wproject1.repository.GroupMongoRepository;
 
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 
-//@RequiredArgsConstructor
+
 @AllArgsConstructor
+//@RequiredArgsConstructor
+@NoArgsConstructor
+//@Slf4j
 @Service
 public class GroupService  {
-    private static final String GROUP_ERROR="group";
-    private static final String MEMBER_ERROR="member";
-    private static final String NOT_FOUND_ERROR ="Exception.notFound";
-    private static final String BUSINESS_ERROR ="Exception.server";
-    private static final String INVALID_INPUT_ERROR ="Exception.invalidInput";
 
     @Autowired
-    MessageSource messageSource;
+    private GroupMongoRepository groupRepository;
 
-    //@Autowired
-    private final GroupsRepository groupsRepository;
-    private final MemberRepository memberRepository;
-    
-    public List<Groups> findAll() throws BusinessException {
-        List<Groups> groups;
-        try {
-           groups= groupsRepository.findAll();
-        }catch (Exception e) {
-           throw (new BusinessException(messageSource.getMessage(BUSINESS_ERROR, null, LocaleContextHolder.getLocale())));
-        }
-        if (groups.isEmpty()) {
-            return new ArrayList<>();
-        }
-        return groups;
+    public Flux<Group> findAll() {
+        return groupRepository.findAll();
     }
+    private static final String INVALID_INPUT="resource not found";
+    private static final String RESOURCE_NOT_FOUND="resource not found";
 
-    public Groups findGroupById(Long gid) throws InvalidInputException, ResourceNotFoundException, BusinessException {
-        if (gid == null || gid <= 0) {
-            throw new InvalidInputException(messageSource.getMessage(INVALID_INPUT_ERROR, new Object[]{GROUP_ERROR, gid}, LocaleContextHolder.getLocale()));
-        }
-        return groupsRepository.findGroupsByID(gid)
-        .orElseThrow(()->new ResourceNotFoundException(messageSource.getMessage(NOT_FOUND_ERROR, new Object[]{GROUP_ERROR, gid}, LocaleContextHolder.getLocale())));
-    }
-
-    public List<Groups> findGroupByName(String groupName) throws ResourceNotFoundException, BusinessException  {
-        return groupsRepository.findGroupsByGroupName(groupName)
-        .orElseThrow(()->new ResourceNotFoundException(messageSource.getMessage(NOT_FOUND_ERROR, new Object[]{GROUP_ERROR, groupName}, LocaleContextHolder.getLocale())));
-    }
-
-	public List<Groups> findGroupsByMemberName(String memberName) throws ResourceNotFoundException, BusinessException {
-        return groupsRepository.findGroupsByMemberName(memberName)
-          .orElseThrow(()->new ResourceNotFoundException(messageSource.getMessage(NOT_FOUND_ERROR, new Object[]{MEMBER_ERROR, memberName}, LocaleContextHolder.getLocale())));
-    }
-
-    public List<Groups> findGroupsByMemberRating(short rating) throws ResourceNotFoundException, BusinessException {
-        return groupsRepository.findGroupsByMemberRating(rating)
-           .orElseThrow(()->new ResourceNotFoundException(messageSource.getMessage(NOT_FOUND_ERROR, new Object[]{GROUP_ERROR, "rating:"+rating}, LocaleContextHolder.getLocale())));
-    }
-
-    public Groups createGroup(Groups group) throws BusinessException{
+    public Mono<Group> findGroupById(String id) throws InvalidInputException, BusinessException { 
+        if (id == null) throw new InvalidInputException(INVALID_INPUT);
         
-        return groupsRepository.save(group);
+        Mono<Group>retrievedGroup=groupRepository.findById(id).onErrorMap(e->new BusinessException(e.getMessage()));
+       
+        return retrievedGroup.switchIfEmpty(Mono.error(
+            new ResourceNotFoundException(RESOURCE_NOT_FOUND)));
+
     }
 
-    @Transactional
-    public void deleteGroup(Groups group) throws BusinessException {
-        groupsRepository.delete(group);
-    }
-    @Transactional
-    public Groups deleteGroupMembers(long gid, long memberId) throws ResourceNotFoundException, BusinessException {
-        Groups retrievedGroup=groupsRepository.findById(gid)
-           .orElseThrow(()->new ResourceNotFoundException(messageSource.getMessage(NOT_FOUND_ERROR, new Object[]{GROUP_ERROR, gid + " and "+memberId}, LocaleContextHolder.getLocale())));
-    
-        List<Member>retrievedMembers = retrievedGroup.getMembers();
-        retrievedMembers.removeIf(a -> a.getMemberId() == memberId);
-        retrievedGroup.setMembers(retrievedMembers);
-        groupsRepository.save(retrievedGroup);
-    
-        return retrievedGroup;
+
+    public Mono<Group> createGroup(Group group1) throws InvalidInputException, BusinessException{
+        if (group1 == null) throw new InvalidInputException(INVALID_INPUT);
+       
+        return groupRepository.save(group1).onErrorMap(e -> new BusinessException(e.getMessage()));
     }
 
-    public void deleteAll() {
-        groupsRepository.deleteAll();
+    public Mono<Group> updateGroup(Group group1) throws InvalidInputException, ResourceNotFoundException, BusinessException {
+
+        if (group1 == null) throw new InvalidInputException(INVALID_INPUT);
+        if ((group1.getGid()).isEmpty()) throw new InvalidInputException(INVALID_INPUT);
+        
+        groupRepository.findById(group1.getGid()).switchIfEmpty(Mono.error(
+            new ResourceNotFoundException(RESOURCE_NOT_FOUND)));
+
+        return groupRepository.save(group1).onErrorMap(e -> new BusinessException(e.getMessage()));
     }
 
-    @Transactional
-    public Groups updateGroup(long gid, Groups updates) throws ResourceNotFoundException, BusinessException {
-        Groups retrievedGroup=groupsRepository.findById(gid)
-           .orElseThrow(()->new ResourceNotFoundException(messageSource.getMessage(NOT_FOUND_ERROR, new Object[]{GROUP_ERROR, gid}, LocaleContextHolder.getLocale())));
-        if (updates.getMembers() == null || !updates.getMembers().isEmpty()) {
-             retrievedGroup.setMembers(updates.getMembers());
-        }
-        retrievedGroup.setGroupName(updates.getGroupName());
-        retrievedGroup.setAttr1(updates.getAttr1());
-        retrievedGroup.setAttr2(updates.getAttr2());
-        groupsRepository.save(retrievedGroup);
-    
-        return retrievedGroup;
+    public Mono<Group> findGroupByName(String groupName) throws InvalidInputException, ResourceNotFoundException, BusinessException {
+        
+        if (groupName.isEmpty()) throw new InvalidInputException(INVALID_INPUT);
+        Group emptyGroup = new Group();
+        return groupRepository.findById(groupName)
+            .defaultIfEmpty(emptyGroup).onErrorMap(e->new BusinessException(e.getMessage()));
     }
-    
+
+    public Mono<Void> deleteById(String id) throws InvalidInputException, ResourceNotFoundException, BusinessException {
+        if (id.isEmpty()) throw new InvalidInputException(INVALID_INPUT);
+        groupRepository.findById(id).switchIfEmpty(Mono.error(
+            new ResourceNotFoundException(RESOURCE_NOT_FOUND)));
+
+        return groupRepository.deleteById(id);
+    }
+
+    public Mono<Void> deleteAll() {
+        return groupRepository.deleteAll().onErrorMap(e->new BusinessException(e.getMessage()));
+    }
 }

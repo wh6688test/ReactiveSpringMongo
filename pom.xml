@@ -23,94 +23,77 @@
 		<org.mapstruct.version>1.4.1.Final</org.mapstruct.version>
 		<org.projectlombok.version>1.18.16</org.projectlombok.version>
 		<org.apache.maven.plugins.version>3.3.4</org.apache.maven.plugins.version>
-        <org.springdoc.openapi.version>1.5.2</org.springdoc.openapi.version>
-         <org.springfox.swaggerui.version>3.0.0</org.springfox.swaggerui.version>
+         <org.springwebflux.openapi-swaggerui.version>1.5.4</org.springwebflux.openapi-swaggerui.version>
 		 <org.apache.maven.plugins.version>3.8.1</org.apache.maven.plugins.version>
-
-		<start-class>org.tutorials.wproject1.Wproject1Application</start-class>
+ 		<reactor.test.version>3.3.13.RELEASE</reactor.test.version>
+		<reactor.core.version>3.3.13.RELEASE</reactor.core.version>
+		<start-class>org.tutorials.wproject1.Spring5ReactiveApplication</start-class>
 		<skip.it>false</skip.it>
 	</properties>
 
 	<dependencies>
-	    		 <dependency>
-                        <groupId>org.springframework.boot</groupId>
-                        <artifactId>spring-boot-starter</artifactId>
-                </dependency>
-
+	    		
+				 <dependency>
+          			  <groupId>org.springframework.boot</groupId>
+          			  <artifactId>spring-boot-starter-webflux</artifactId>
+        		</dependency>
+                
                 <dependency>
-					<groupId>org.springframework.boot</groupId>
-					<artifactId>spring-boot-starter-web</artifactId>
-				</dependency>
-		
-
-                 <dependency>
                     <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-data-jpa</artifactId>
-                 </dependency>
-
+                    <artifactId>spring-boot-starter-data-mongodb-reactive</artifactId>
+                </dependency>
                 <dependency>
-                  <groupId>org.springframework.boot</groupId>
-             <artifactId>spring-boot-starter-data-rest</artifactId>
-                 </dependency>
-
+                   <groupId>de.flapdoodle.embed</groupId>
+                   <artifactId>de.flapdoodle.embed.mongo</artifactId>
+                </dependency>
+                
 				 <dependency>
 			      <groupId>org.springframework.boot</groupId>
 			     <artifactId>spring-boot-starter-actuator</artifactId>
 		       </dependency>
-
-
-
 				<dependency>
-					<groupId>org.springdoc</groupId>
-					<artifactId>springdoc-openapi-ui</artifactId>
-					<version>${org.springdoc.openapi.version}</version>
-				</dependency>   
-
-	            <dependency>
-                     <groupId>io.springfox</groupId>
-                     <artifactId>springfox-swagger-ui</artifactId>
-                     <version>${org.springfox.swaggerui.version}</version>
-                </dependency>
-
-				<dependency>
-					<groupId>org.springframework.boot</groupId>
-					<artifactId>spring-boot-devtools</artifactId>
-					<scope>runtime</scope>
-				</dependency>
-
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+		<dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-webflux-ui</artifactId>
+            <version>${org.springwebflux.openapi-swaggerui.version}</version>
+        </dependency>     
+				
 				<dependency>
 					<groupId>org.projectlombok</groupId>
 					<artifactId>lombok</artifactId>
 					<version>${org.projectlombok.version}</version>
 				</dependency>
-
 				<dependency>
    					 <groupId>org.mapstruct</groupId>
    					 <artifactId>mapstruct</artifactId>
    					 <version>${org.mapstruct.version}</version>
 				</dependency>
 
-		      	<dependency>
-					<groupId>com.h2database</groupId>
-					<artifactId>h2</artifactId>
-				</dependency>
-
                 <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
-        <exclusions>
-            <exclusion>
-                <groupId>org.junit.vintage</groupId>
-                <artifactId>junit-vintage-engine</artifactId>
-            </exclusion>
-        </exclusions>
-    </dependency>
-
+      				<groupId>org.springframework.boot</groupId>
+     				 <artifactId>spring-boot-starter-test</artifactId>
+    				  <scope>test</scope>
+     				   <exclusions>
+       				     <exclusion>
+         				       <groupId>org.junit.vintage</groupId>
+           				     <artifactId>junit-vintage-engine</artifactId>
+          				  </exclusion>
+       				 </exclusions>
+   				 </dependency>
+					<!-- https://mvnrepository.com/artifact/io.projectreactor/reactor-test -->
+                <dependency>
+   					 <groupId>io.projectreactor</groupId>
+   					 <artifactId>reactor-test</artifactId>
+   					 <version>${reactor.test.version}</version>
+   					 <scope>test</scope>
+				</dependency>
+				
 	</dependencies>
-
 	<build>
-		<finalName>spring-boot-wproject1</finalName>
+		<finalName>springboot-reactive-wproject1</finalName>
 		<resources>
 			<resource>
 				<directory>src/main/resources </directory>
@@ -120,9 +103,9 @@
 				 </excludes>
 			</resource>
 		</resources>
-		<plugins>
 
-            <plugin>
+<plugins>
+        <plugin>
        			 <groupId>org.springframework.boot</groupId>
       			  <artifactId>spring-boot-maven-plugin</artifactId>
       			  <executions>
@@ -137,7 +120,8 @@
        			 </executions>
    			 </plugin>
 
-			 <plugin>
+		
+		<plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${org.apache.maven.plugins.version}</version>
@@ -162,9 +146,14 @@
                     </compilerArgs>
                 </configuration>
             </plugin>
-			
-		</plugins>
-	</build>
 
+</plugins>
+</build>
 
+<repositories>
+    <repository>
+        <id>oss.sonatype.org-snapshot</id>
+        <url>http://oss.sonatype.org/content/repositories/snapshots</url>
+    </repository>
+</repositories>
 </project>

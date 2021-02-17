@@ -1,3 +1,8 @@
+To do : 
+
+1.  testcase updates : currently most testcases are still failing now 
+2.  changing Member as entity
+
 start springboot app : 
  mvn spring-boot:run
 
@@ -13,5 +18,16 @@ run testcase :
     
   mvn -Dtest=<suite name>#<testcase name>  test
 
+api health link : 
+   http://localhost:8083/actuator/health
+
 api doc link :  
-   http://localhost:8081/swagger-ui-custom.html
+   http://localhost:8083/swagger-ui-custom.html
+
+---
+
+links : 
+
+   https://zetcode.com/springboot/mongodbreactive/
+
+

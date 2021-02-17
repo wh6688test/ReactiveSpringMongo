@@ -1,8 +1,12 @@
 package org.tutorials.wproject1.exception;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
+@ResponseStatus(value=HttpStatus.BAD_REQUEST, reason="invalid input") 
 
 public class InvalidInputException extends RuntimeException {
 
-    private static final long serialVersionUID=-9079454849611061073L;
+    private static final long serialVersionUID=-9079454849611061072L;
 
     public InvalidInputException() {
         super();

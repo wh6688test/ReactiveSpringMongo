@@ -1,223 +1,174 @@
 package org.tutorials.wproject1.controller;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.tutorials.wproject1.model.Groups;
-import org.tutorials.wproject1.model.GroupDTO;
-import org.tutorials.wproject1.service.GroupService;
+import org.springframework.web.reactive.function.server.ServerResponse;
+import org.springframework.web.reactive.function.server.ServerResponse.BodyBuilder;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import org.tutorials.wproject1.exception.BusinessException;
 import org.tutorials.wproject1.exception.InvalidInputException;
+import org.tutorials.wproject1.exception.ResourceAlreadyExistException;
+import org.tutorials.wproject1.exception.ResourceNotFoundException;
+import org.tutorials.wproject1.model.Group;
+import org.tutorials.wproject1.model.GroupDTO;
 
 import java.util.ArrayList;
-import java.util.List;
-import javax.servlet.http.HttpServletResponse;
+
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 
-@RequiredArgsConstructor
 
 @RestController
 @Validated
 @RequestMapping(value="/wrest")
 public class Wproject1Controller {
 
-    private static final String ERROR_GROUP = "group";
-    private static final String ERROR_MEMBER = "member";
-    private static final String ERROR_ATTRIBUTES = "attributes";
+    @Autowired
+    private GroupMapper groupMapper;
 
-    private static final String CONTENT_TYPE="application/json";
+    @Autowired
+    private org.tutorials.wproject1.service.GroupService groupService;
 
-    private static final String BUSINESS_ERROR = "Exception.server";
-    private static final String NOT_FOUND_ERROR ="Exception.notFound";
-    private static final String INVALID_INPUT_ERROR ="Exception.invalidInput";
-
-    private final GroupService groupService;
-    private final GroupMapper groupMapper;
-
-    //@Autowired
-    private final MessageSource messageSource;
-
-    @ModelAttribute
-    public void setResponseHeader(HttpServletResponse response) {
-        response.setHeader(HttpHeaders.ACCEPT, CONTENT_TYPE);
-    }
-    
-    //returns empty list if no group exists
     @ApiResponses(value= {
-            @ApiResponse ( responseCode="200", description="Found all the groups",
-                    content={@Content(mediaType="application.json")}
-            ),
-            @ApiResponse(responseCode = "400", description = "Invalid request input", 
-    content = @Content), 
-            @ApiResponse ( responseCode="404", description="Group not found", content=@Content),
-   
-    })
-
-    @Operation(summary="Get all groups")
-    @GetMapping("/groups")
-    public List<Groups> getGroups() throws BusinessException {
-         
-            return groupService.findAll(); 
+        @ApiResponse ( responseCode="200", description="find all groups",
+                content={@Content(mediaType="application/json")}
+        ),
+        @ApiResponse ( responseCode="500", description="Business exception"),
+})
+    @Operation(summary="get all groups")
+    @GetMapping(value="/groups", produces = {"application/json"})
+    public Flux<Group> getGroups()  {
+            return groupService.findAll()
+                   .flatMap(Flux::just)
+                   .onErrorResume(e -> {
+                        if (e instanceof InvalidInputException) {
+                           return Flux.error(new InvalidInputException());
+                        }
+                        return Flux.error(new BusinessException());
+                    });
     } 
 
     //throws not found exception for non-existing gid
     @ApiResponses(value= {
             @ApiResponse ( responseCode="200", description="Found the group by id",
-                    content= {@Content(mediaType = "application.json")
+                    content= {@Content(mediaType = "application/json")
             }),
-
-            @ApiResponse ( responseCode="400", description="invalid id supplied", content=@Content),
-
-            @ApiResponse ( responseCode="404", description="Group not found", content=@Content),
+            @ApiResponse ( responseCode="400", description="invalid id supplied"),
+            @ApiResponse ( responseCode="404", description="Group not found"),
+            @ApiResponse ( responseCode="500", description="Business exception"),
     })
 
 
     @Operation(summary="Get the group by gid")
-    @GetMapping("/group")
-    //@ResponseStatus(HttpStatus.OK)
-    public Groups getGroup(@RequestParam  @Min(1) Long gid) throws InvalidInputException, BusinessException  {
-       
-        if(null==gid || gid <=0 ) { 
-                throw new InvalidInputException(messageSource.getMessage(INVALID_INPUT_ERROR, new Object[]{ERROR_GROUP}, LocaleContextHolder.getLocale()));
-        }
-        try {
-            return groupService.findGroupById(gid);
-           
-        } catch (ResourceNotFoundException e) {
-                return null;
-        }
-         catch (Exception e) {
-             //only business exception is thrown to end user
-             throw new BusinessException(messageSource.getMessage(BUSINESS_ERROR, new Object[]{ERROR_GROUP}, LocaleContextHolder.getLocale()));
-         }
+    @GetMapping(value="/group", produces = {"application/json"})
+    public Mono<Group> getGroup(@RequestParam  @Min(1) String gid){
+
+            return groupService.findGroupById(gid)
+            .flatMap(Mono::just)
+            .switchIfEmpty(Mono.empty())
+            .onErrorResume(e -> {
+                if (e instanceof InvalidInputException) {
+                   return Mono.error(new InvalidInputException());
+                }
+                if (e instanceof ResourceNotFoundException) {
+                    return Mono.error(new ResourceNotFoundException());
+                }
+                return Mono.error(new BusinessException());
+            });
     }
 
-    @Operation(summary="Get the group by group name")
-    @GetMapping("/group/{groupName}")
-    //@ResponseStatus(HttpStatus.OK)
-    public List<Groups> getGroupByName(@PathVariable String groupName) throws InvalidInputException, BusinessException  {
-        List<Groups> retrievedGroups=new ArrayList<>();
-        if(null==groupName) { 
-                throw new InvalidInputException(messageSource.getMessage(INVALID_INPUT_ERROR, new Object[]{ERROR_GROUP, groupName}, LocaleContextHolder.getLocale()));
-        } 
-        try {
-           return groupService.findGroupByName(groupName);
-        } catch (ResourceNotFoundException e) {
-            return retrievedGroups;
-        }
-        catch (Exception e) {
-            //only business exception is thrown to end user
-            throw new BusinessException(messageSource.getMessage(BUSINESS_ERROR, new Object[]{ERROR_GROUP}, LocaleContextHolder.getLocale()));
-        }
-    }
-
-    //empty list if no member exists
-    @GetMapping(value="/group/member/name/{memberName}", produces="application/json")
-    //@ResponseStatus(HttpStatus.OK)
-    @Operation(summary="Get group by member name")
-    public List<Groups> getGroupWithMemberName(@PathVariable String memberName) throws InvalidInputException, BusinessException {
-        List<Groups>result = new ArrayList<>();
-        if(null==memberName || memberName.length() == 0) { 
-            throw new InvalidInputException(messageSource.getMessage(INVALID_INPUT_ERROR, new Object[]{ERROR_MEMBER, memberName}, LocaleContextHolder.getLocale()));
-        }
-        try {
-            return groupService.findGroupsByMemberName(memberName);
-        } catch (ResourceNotFoundException e) {
-           return result;
-        } catch (Exception e) {
-            throw new BusinessException(messageSource.getMessage(BUSINESS_ERROR, new Object[]{ERROR_GROUP}, LocaleContextHolder.getLocale()));
-        }
-    }
-
-    //empty list if no member exists
-    @GetMapping(value="/group/member/rating/{rating}", produces="application/json")
-    //@ResponseStatus(HttpStatus.OK)
-    @Operation(summary="Get group by member rating")
-    public List<Groups> getGroupWithMemberRating(@PathVariable short rating) throws InvalidInputException, BusinessException {
-        List<Groups>result = new ArrayList<>();
-        if(rating > 6 || rating < 1) { 
-            throw new InvalidInputException(messageSource.getMessage(INVALID_INPUT_ERROR, new Object[]{ERROR_MEMBER, rating}, LocaleContextHolder.getLocale()));
-        }
-        try {
-         return groupService.findGroupsByMemberRating(rating);
-        } catch (ResourceNotFoundException e) {
-            return result;
-        } catch (Exception e) {
-            throw new BusinessException(messageSource.getMessage(BUSINESS_ERROR, new Object[]{ERROR_GROUP}, LocaleContextHolder.getLocale()));
-        }
-
-    }
-
-    @PostMapping(path="/group", consumes="application/json")
-    @ResponseStatus(HttpStatus.CREATED)
+    @ApiResponses(value= {
+        @ApiResponse ( responseCode="201", description="Create the groups",
+        content= {@Content(mediaType = "application/json")}
+        ),
+        @ApiResponse(responseCode = "400", description = "Invalid request input"),
+        @ApiResponse ( responseCode="500", description="Business exception"),     
+})
+    @PostMapping(path="/group", consumes={"application/json"}, produces={"application/json"})
+    @ResponseStatus(value=HttpStatus.CREATED)
     @Operation(summary="create a group")
-    public Groups createGroup(@Valid @RequestBody GroupDTO groupDTO) throws BusinessException,InvalidInputException {
-        /** 
-        if (groupService.findGroupById(groupDTO.getGid()).isPresent()) {
+    public Mono<Group> createGroup(@Valid @RequestBody GroupDTO groupDTO) {
+    
+   Mono<Group>groupMono=groupService.findGroupById(groupDTO.getGid());
+   //the exception is not returnning -- not sure how to properly chain this condition
+   groupMono.flatMap( g-> Mono.error(new ResourceAlreadyExistException()));
 
-        }
-        **/
-        //It will return HttpStatus.CREATED even if the resource already exists
-        return groupService.createGroup(groupMapper.toGroups(groupDTO));
-        
-        /** 
-        if (groupDTO.getMembers() == null) {
-            throw new InvalidInputException(messageSource.getMessage(INVALID_INPUT_ERROR, new Object[]{ERROR_GROUP}, LocaleContextHolder.getLocale()));
-        }**/
-        /** 
-        try {
-          return ResponseEntity.status(HttpStatus.CREATED).body(groupDTO);
-        } catch (Exception e) {
-            throw new BusinessException(messageSource.getMessage(BUSINESS_ERROR, new Object[]{ERROR_GROUP}, LocaleContextHolder.getLocale()));
-        }**/
+   return  groupService.createGroup(groupMapper.toGroup(groupDTO))
+                  .flatMap(Mono::just)
+                  .onErrorResume(e -> {
+                     if (e instanceof InvalidInputException) {
+                         return Mono.error(new InvalidInputException());
+                     }
+                     return Mono.error(new BusinessException());
+                  });
     }
 
-    //do nothing if the group does not exist
+    @ApiResponses(value= {
+        @ApiResponse ( responseCode="204", description="delete group by gid"),
+        @ApiResponse ( responseCode="400", description="invalid id supplied"),
+        @ApiResponse ( responseCode="404", description="Group not found"),
+        @ApiResponse ( responseCode="500", description="Business exception"),
+    })
     @DeleteMapping(path="/group/{gid}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary="Delete a group by its id")
-    public void deleteGroup(@PathVariable Long gid) throws InvalidInputException, ResourceNotFoundException, BusinessException{
-       
-        if(null==gid || gid.equals(0L)) { 
-            throw new InvalidInputException(messageSource.getMessage(INVALID_INPUT_ERROR, new Object[]{ERROR_GROUP, gid}, LocaleContextHolder.getLocale()));
-        }
-        try {
-                Groups retrievedGroup = groupService.findGroupById(gid);
-                groupService.deleteGroup(retrievedGroup);
-        } catch (ResourceNotFoundException e) {
-            throw new ResourceNotFoundException(messageSource.getMessage(NOT_FOUND_ERROR, new Object[]{ERROR_GROUP}, LocaleContextHolder.getLocale()));
-        } catch (Exception e) {
-            throw new BusinessException(messageSource.getMessage(BUSINESS_ERROR, new Object[]{ERROR_GROUP}, LocaleContextHolder.getLocale()));
-        }
+    public Mono<Void> deleteGroup(@PathVariable String gid) {
+
+            return groupService.findGroupById(gid)
+                .flatMap(g -> groupService.deleteById(gid))
+                .switchIfEmpty(Mono.empty())
+                .onErrorResume(e -> {
+                    if (e instanceof InvalidInputException) {
+                       return Mono.error(new InvalidInputException());
+                    }
+                    if (e instanceof ResourceNotFoundException) {
+                        return Mono.error(new ResourceNotFoundException());
+                    }
+                    return Mono.error(new BusinessException());
+             });
     }
 
-    //do nothing if group does not exist
+    @ApiResponses(value= {
+        @ApiResponse ( responseCode="202", description="update the group",
+                content={@Content(mediaType="application/json")}
+        ),
+        @ApiResponse(responseCode = "400", description = "Invalid request input",
+content = @Content),
+        @ApiResponse ( responseCode="500", description="Business exception", content=@Content),     
+})
     @PutMapping(value="/group/{gid}")
     @ResponseStatus(HttpStatus.ACCEPTED)
     @Operation(summary="Update a group by its id with a new group")
-    public Groups updateGroup(@PathVariable Long gid, @Valid @RequestBody GroupDTO groupDTO) throws InvalidInputException, ResourceNotFoundException, BusinessException {
-
-        if(null==gid || gid.equals(0L)) { 
-            throw new InvalidInputException(messageSource.getMessage(INVALID_INPUT_ERROR, new Object[]{ERROR_GROUP, gid}, LocaleContextHolder.getLocale()));
-        }
-        if(null==groupDTO) { 
-            throw new InvalidInputException(messageSource.getMessage(INVALID_INPUT_ERROR, new Object[]{ERROR_ATTRIBUTES, groupDTO}, LocaleContextHolder.getLocale()));
-        }
-        try {
-           return groupService.updateGroup(gid, groupMapper.toGroups(groupDTO));
-        }  catch (ResourceNotFoundException e) {
-            throw new ResourceNotFoundException(messageSource.getMessage(NOT_FOUND_ERROR, new Object[]{ERROR_GROUP}, LocaleContextHolder.getLocale()));
-        } catch (Exception e) {
-            throw new BusinessException(messageSource.getMessage(BUSINESS_ERROR, new Object[]{ERROR_GROUP}, LocaleContextHolder.getLocale()));
-        }
+    public Mono<Group> updateGroup(@Valid @PathVariable String gid, @RequestBody GroupDTO groupDTO) throws InvalidInputException, ResourceNotFoundException, BusinessException {
+       
+            if (!gid.equals(groupDTO.getGid()))return Mono.error(new InvalidInputException("input gid is not matching"));
+            return groupService.findGroupById(gid)
+            .flatMap(g -> {
+                Group updatedGroup = groupMapper.toGroup(groupDTO);
+                updatedGroup.setGid(gid);
+                return groupService.updateGroup(updatedGroup)
+                       .flatMap(Mono::just);
+            })
+            .switchIfEmpty(Mono.empty())
+            .onErrorResume(e -> {
+            if (e instanceof InvalidInputException) {
+               return Mono.error(new InvalidInputException());
+            }
+            if (e instanceof ResourceNotFoundException) {
+                return Mono.error(new ResourceNotFoundException());
+            }
+            return Mono.error(new BusinessException());
+     });
     }
 }
