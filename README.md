@@ -1,7 +1,7 @@
 To do : 
 
 1.  testcase updates : currently most testcases are still failing now 
-2.  changing Member as entity
+2.  changing Member as entity (Also needs to test the customized find by groupName api)
 
 start springboot app : 
  mvn spring-boot:run
